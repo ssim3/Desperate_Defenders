@@ -122,7 +122,7 @@ def show_combat_menu():
         combat_choice = int(input("Your choice? "))
         check_combat_choice(combat_choice)
 
-    except:                                                 # Rerun the function if invalid
+    except TypeError:                                                 # Rerun the function if invalid
         print("Invalid input!")
         show_combat_menu()
 
@@ -160,7 +160,7 @@ def show_main_menu():
         assert 1 <= choice <= 3
         return choice
 
-    except:
+    except (TypeError, ValueError, AssertionError):
 
         print("Invalid choice!")
         show_main_menu()
@@ -206,11 +206,10 @@ def place_unit(unit_name, field):
             place_unit(unit_name, field)
         end_turn(field)
 
-    except Exception as e: 
-        print(e)
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        print(exc_type, fname, exc_tb.tb_lineno)
+    except ValueError or AssertionError:                                                         # REMOVE
+        exc_type, exc_obj, exc_tb = sys.exc_info()                         # REMOVE             
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]       # REMOVE 
+        print(exc_type, fname, exc_tb.tb_lineno)                           # REMOVE
         print("Invalid position!")
         place_unit(unit_name, field)  
 
@@ -246,8 +245,7 @@ def buy_unit():
                 print("Insufficient gold!")
                 buy_unit()
 
-    except Exception as e:
-        print(e)
+    except (ValueError, AssertionError):
         buy_unit()
 
 #--------------------------------------------------------------------
@@ -264,14 +262,26 @@ def end_turn(field):
                 if field[row][unit][0] in defender_list:
                     defender_attack(field[row][unit][0], field, row)    
                 elif field[row][unit][0] in monster_list:
-                    win = monster_advance(field[row][unit][0], field, row, unit)
-                    if win == True:
-                        break
-    
-    win_game()
+                    monster_advance(field[row][unit][0], field, row, unit)
 
+    if monster_check(field) == True:
+        spawn_monster(monster_list)
+    
+    game_vars["gold"] += 1
     draw_field()
 
+#-------------------------------------------------------------------------------------
+# monster_check(field)
+#                   Checks if there are monsters in the field, if not, spawn_monster()
+#-------------------------------------------------------------------------------------
+def monster_check(field):
+    for i in field:
+        for j in i:
+            if j != None:
+                if j[0] in monster_list:
+                    return False
+    
+    return True
 
 
 #-----------------------------------------------------------
@@ -325,7 +335,7 @@ def monster_advance(monster_name, field, row, column):
 
     # If passes.
     if column - monsters[monster_name]["moves"] < 0:
-        return True
+        lose_game()
 
     # If there is none
     if field[row][column - monsters[monster_name]["moves"]] == None:
@@ -378,6 +388,16 @@ def spawn_monster(monster_list):
 #-----------------------------------------
 def win_game():
     print("You have won the game!")
+    raise SystemExit(0)
+
+#-----------------------------------------
+# lose_game()
+#-----------------------------------------
+#   Prompts that the user has lost the game.
+#-----------------------------------------
+def lose_game():
+    print("You have lost the game!")
+    raise SystemExit(0)
 
 # save_game()
 #
