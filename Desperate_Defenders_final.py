@@ -13,7 +13,7 @@ game_vars = {
     'danger_level': 1,              # Rate at which threat increases
     }
 
-defender_list = ['ARCHR', 'WALL']
+defender_list = ['ARCHR', 'WALL', 'MINE', 'HEAL']
 monster_list = ['ZOMBI', 'WWOLF']
 
 defenders = {'ARCHR': {'name': 'Archer',
@@ -30,7 +30,24 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'max_damage': 0,
                       'price': 3,
                       'upgrade_cost': 6
-                      }
+                      },
+
+             'MINE': {'name': 'Mine',
+                      'maxHP': 10,
+                      'min_damage': 10,
+                      'max_damage': 10,
+                      'price': 7,
+                      'upgrade_cost': 10
+                      },
+
+             'HEAL': {'name': 'Heal',
+                      'maxHP': 0,
+                      'min_damage': 5,
+                      'max_damage': 5,
+                      'price': 8,
+                      'upgrade_cost': 12                     
+                     }
+            
              }
 
 monsters = {'ZOMBI': {'name': 'Zombie',
@@ -206,8 +223,12 @@ def place_unit(unit_name, field):
         assert position[0].lower() in letter_columns
         assert 1 <= int(position[1]) <= 3
 
+        # If player is putting down a heal
+        if unit_name == "HEAL":
+            heal_units(position=position)
+
         # Ensures that player can only put unit in an empty position
-        if field[letter_columns.index(position[0])][int(position[1]) - 1] == None:
+        elif field[letter_columns.index(position[0])][int(position[1]) - 1] == None:
             field[letter_columns.index(position[0])][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
         
         # If there is already a unit there, warns the player and reruns the function.
@@ -385,6 +406,14 @@ def defender_attack(unit, field, row, column):
                 
                 # Breaks loop after shooting at one monster, as monsters behind are unaffected.
                 break
+
+#----------------------------------------------------------
+# heal_units()
+#
+#   Heals units within a 3 x 3 square
+#----------------------------------------------------------
+def heal_units(position):
+    pass
                     
 
 #-----------------------------------------------------------
