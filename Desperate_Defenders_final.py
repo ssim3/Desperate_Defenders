@@ -137,7 +137,7 @@ def check_combat_choice(choice):
     elif choice == 2:
         end_turn(field)
     elif choice == 3:
-        save_game()
+        save_game(field, game_vars)
     elif choice == 4:
         print("Thank you for playing")
     else:
@@ -178,7 +178,7 @@ def menu_check(option):
     elif option == 2:
         load_game()
     elif option == 3:
-        print("Thank you for playing")
+        print("See you next time!")
 
 
 #-----------------------------------------------------
@@ -299,6 +299,7 @@ def monster_check(field):
     for i in field:
         for j in i:
             if j != None:
+                # Returns False if there is a monster on the field.
                 if j[0] in monster_list:
                     return False
     
@@ -309,7 +310,7 @@ def monster_check(field):
 # defender_attack()
 #
 #    Defender unit attacks.
-#
+#    
 #-----------------------------------------------------------
 def defender_attack(unit, field, row, column):
     letter_columns = ["a", "b", "c", "d", "e"]
@@ -317,6 +318,7 @@ def defender_attack(unit, field, row, column):
     max_dmg = defenders[unit]["max_damage"]
     min_dmg = defenders[unit]["min_damage"]
 
+    # Loops through every unit to the right of the defender.
     for element in range(column, len(field[row])):
         # If its not none
         if field[row][element] != None:
@@ -467,16 +469,71 @@ def lose_game():
 #
 #    Saves the game in the file 'save.txt'
 #-----------------------------------------
-def save_game():
-    print("Game saved.")
+def save_game(field, game_vars):
+    with open("save.txt", "w") as save_file:
+        print("Game saved.")
+
+        # Converts game_vars to list of strings
+        variables = [str(x) for x in game_vars.values()]
+        
+        # Saves first line as game variables
+        save_file.writelines(",".join(variables))
+        
+        save_file.write("\n")
+
+        # Loops through every row in field
+        for row in field:
+            # Saves every element of row as a list of strings
+            field_row = [str(x) for x in row]
+            # Saves list of elements as a single string joined by a "-"
+            save_file.writelines("-".join(field_row))
+            save_file.write("\n")
+
+        save_file.close()
     
 #-----------------------------------------
 # load_game()
 #
 #    Loads the game from 'save.txt'
 #-----------------------------------------
-def load_game(game_vars):
-    return
+def load_game():
+    with open("save.txt", "r") as save_file:
+        print("Loading saved game....")
+        
+        # List of lines
+        variables_and_field = save_file.readlines()
+
+        if len(variables_and_field) != 6:
+            print("Failed to load save file...Returning to main menu")
+            show_main_menu()
+        
+        # First line is game variables
+        game_variables = variables_and_field[0].strip("\n").split(",")
+
+        # enumerate creates an index value pair, e.g., (0, turn), (1, maxHP)
+        for i, j  in enumerate(game_vars):
+            game_vars[j] = int(game_variables[i])
+        
+        # For every row in field
+        for row in range(len(field)):
+            # Temp row is the second line onwards of the txt file split into a list.
+            temp_row = variables_and_field[row + 1].strip("\n").split("-")
+            
+            # For every element in each row
+            for column in range((len(field[0]))):
+                # If it is "None" in the txt file, the element becomes NoneType
+                if temp_row[column] == "None":
+                    field[row][column] = None
+                
+                # If it is not None, split the list into 3, then save the first (name), second (hp) and third (maxHP) values accordingly
+                else:
+                    temp_info = temp_row[column].strip("]").strip("[").split(",")
+                    field[row][column] = [temp_info[0].strip("'"), int(temp_info[1]), int(temp_info[2])]
+        
+        save_file.close()
+        
+    draw_field()
+
 
 #-----------------------------------------
 # new_game()

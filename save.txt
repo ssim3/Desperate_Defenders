@@ -1,0 +1,6 @@
+18,20,4,0,5,4,10,2
+['ARCHR', 5, 5]-['ARCHR', 5, 5]-['WALL', 14, 20]-None-None-None-None
+None-None-['WWOLF', 11, 11]-None-None-None-None
+['WWOLF', 4, 11]-None-None-None-None-None-None
+['ARCHR', 5, 5]-['ARCHR', 5, 5]-['WALL', 3, 20]-None-None-None-None
+None-None-None-None-None-None-None
