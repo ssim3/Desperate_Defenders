@@ -21,6 +21,7 @@ defenders = {'ARCHR': {'name': 'Archer',
                        'min_damage': 1,
                        'max_damage': 4,
                        'price': 5,
+                       'upgrade_cost': 8
                        },
              
              'WALL': {'name': 'Wall',
@@ -28,6 +29,7 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'min_damage': 0,
                       'max_damage': 0,
                       'price': 3,
+                      'upgrade_cost': 6
                       }
              }
 
@@ -115,8 +117,8 @@ def show_game_vars():
 #    Displays the combat menu
 #----------------------------
 def show_combat_menu():
-    print("1. Buy unit     2. End turn")
-    print("3. Save game    4. Quit")
+    print("1. Buy unit  2. Upgrade Unit   3. End turn")
+    print("4. Save game 5. Quit")
 
     try:                                                    # Prompts user for choice, ensures no invalid inputs. 
         combat_choice = int(input("Your choice? "))
@@ -135,14 +137,15 @@ def check_combat_choice(choice):
     if choice == 1:
         buy_unit()
     elif choice == 2:
-        end_turn(field)
+        upgrade_defender()
     elif choice == 3:
-        save_game(field, game_vars)
+        end_turn(field)
     elif choice == 4:
+        save_game(field, game_vars)
+    elif choice == 5:
         print("Thank you for playing")
     else:
         print("Invalid input!")
-        
         show_combat_menu()
 
 
@@ -253,6 +256,39 @@ def buy_unit():
     except (ValueError, AssertionError):
         print("Invalid Unit!")
         buy_unit()
+
+#-------------------------------------------------------------------
+# upgrade_defender()
+#
+#   Prompts user for which defender he/she would like to upgrade
+#---------------------------------------------------------------------
+def upgrade_defender():
+    for i in range(len(defender_list)):        
+        print("{}. {} ({} gold)".format(i + 1, defenders[defender_list[i]]["name"], defenders[defender_list[i]]["upgrade_cost"]))
+    
+    print(f"{i + 2}. Don't buy")
+
+    try:
+        unit_choice = int(input("Your choice? "))
+        assert 1 <= unit_choice <= (len(defender_list) + 1)
+
+        # If user selects DONT BUY, returns to combat menu.
+        if (unit_choice == len(defender_list) + 1):
+             show_combat_menu()
+
+        else:
+            # Checks if user has sufficient gold for purchase
+            if game_vars["gold"] >= defenders[defender_list[unit_choice - 1]]["upgrade_cost"]:
+                game_vars["gold"] -= defenders[defender_list[unit_choice - 1]]["upgrade_cost"]
+                defender_upgrade(unit_choice)
+            else:
+                print("Insufficient gold!")
+                upgrade_defender()
+
+    except (ValueError, AssertionError):
+        print("Invalid Upgrade!")
+        upgrade_defender()
+
 
 #--------------------------------------------------------------------
 # end_turn()
@@ -402,8 +438,30 @@ def monster_advance(monster_name, field, row, column):
             print("{} in lane {} is blocked from advancing.".format(monsters[monster_name]["name"], letter_columns[row]))
         
         
+#--------------------------------------------------------------------
+# defender_upgrade()
+#   Increases the status of defenders min_damage, max_damage and HP by a certain cost
+#--------------------------------------------------------------------
+def defender_upgrade(choice):
+    
+    # If defender is an Archer, increase all stats by 1
+    if defender_list[choice - 1] == "ARCHR":
+        defenders[defender_list[choice - 1]]["maxHP"] += 1
+        defenders[defender_list[choice - 1]]["min_damage"] += 1
+        defenders[defender_list[choice - 1]]["max_damage"] += 1
 
-            
+    # If wall, increase HP by 5
+    elif defender_list[choice - 1] == "WALL":
+        defenders[defender_list[choice - 1]]["maxHP"] += 5
+
+    # Increase defender costs incrementing by 2
+    defenders[defender_list[choice - 1]]["upgrade_cost"] += 2
+
+    print("{} upgraded!".format(defenders[defender_list[choice - 1]]["name"]))
+
+    show_combat_menu()
+
+
 #--------------------------------------------------------------------
 # monster_upgrade()
 #
@@ -411,7 +469,7 @@ def monster_advance(monster_name, field, row, column):
 #---------------------------------------------------------------------
 def monster_upgrade(monsters):
 
-    print("The evil gros stronger!\n")
+    print("The evil grows stronger!\n")
 
     game_vars["danger_level"] += 1
 
