@@ -85,9 +85,9 @@ def draw_field():
         for h in range(len(field[i])):                              # Loops through ever element in each row and prints out health
             if field[i][h] != None:  
                 if field[i][h][0] in monster_list:                   
-                    print("|{:>2}/{:<2}".format(field[i][h][1], monsters[field[i][h][0]]["maxHP"]), end="")
+                    print("|{:>2}/{:<2}".format(field[i][h][1], field[i][h][2]), end="")
                 elif field[i][h][0] in defender_list:
-                    print("|{:>2}/{:<2}".format(field[i][h][1], defenders[field[i][h][0]]["maxHP"]), end="")
+                    print("|{:>2}/{:<2}".format(field[i][h][1], field[i][h][2]), end="")
             else:
                 print("|{:<5}".format(""), end="")
             
@@ -118,11 +118,11 @@ def show_combat_menu():
     print("1. Buy unit     2. End turn")
     print("3. Save game    4. Quit")
 
-    try:                                                    # Prompts user for choice, ensures no invalid inputs.
+    try:                                                    # Prompts user for choice, ensures no invalid inputs. 
         combat_choice = int(input("Your choice? "))
         check_combat_choice(combat_choice)
 
-    except TypeError:                                                 # Rerun the function if invalid
+    except (ValueError):                                                 # Rerun the function if invalid
         print("Invalid input!")
         show_combat_menu()
 
@@ -142,6 +142,7 @@ def check_combat_choice(choice):
         print("Thank you for playing")
     else:
         print("Invalid input!")
+        
         show_combat_menu()
 
 
@@ -158,13 +159,14 @@ def show_main_menu():
     try:
         choice = int(input("Your choice? "))
         assert 1 <= choice <= 3
-        return choice
+        
+        menu_check(choice)
 
-    except (TypeError, ValueError, AssertionError):
+    except (ValueError, AssertionError):
 
         print("Invalid choice!")
         show_main_menu()
-
+   
 #----------------------------
 # menu_check(option)
 #
@@ -200,7 +202,7 @@ def place_unit(unit_name, field):
         assert position[0].lower() in letter_columns
         assert 1 <= int(position[1]) <= 3
         if field[letter_columns.index(position[0])][int(position[1]) - 1] == None:
-            field[letter_columns.index(position[0])][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"]]
+            field[letter_columns.index(position[0])][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
         else:
             print("There is already a unit there!")
             place_unit(unit_name, field)
@@ -254,17 +256,34 @@ def buy_unit():
 def end_turn(field):
     # Changes the game turn
     game_vars["turn"] += 1
+    
+    if game_vars["turn"] % 12 == 0:
+        monster_upgrade(monsters=monsters)
+
+    
+
+    if (game_vars["threat"] == 10):
+        game_vars["threat"] = 0
+        spawn_monster(monster_list=monster_list)
+
     for row in range(len(field)):
         for unit in range(len(field[row])):
             if field[row][unit] != None:
                 if field[row][unit][0] in defender_list:
-                    defender_attack(field[row][unit][0], field, row)    
+                    defender_attack(field[row][unit][0], field, row, unit)    
                 elif field[row][unit][0] in monster_list:
                     monster_advance(field[row][unit][0], field, row, unit)
+    
 
     if monster_check(field) == True:
         spawn_monster(monster_list)
-    
+
+    game_vars["threat"] += random.randint(1, game_vars["danger_level"])
+
+    if (game_vars["threat"] >= 10):
+            game_vars["threat"] -= 10
+            spawn_monster(monster_list=monster_list)
+
     game_vars["gold"] += 1
     draw_field()
 
@@ -288,13 +307,13 @@ def monster_check(field):
 #    Defender unit attacks.
 #
 #-----------------------------------------------------------
-def defender_attack(unit, field, row):
+def defender_attack(unit, field, row, column):
     letter_columns = ["a", "b", "c", "d", "e"]
 
     max_dmg = defenders[unit]["max_damage"]
     min_dmg = defenders[unit]["min_damage"]
 
-    for element in range(len(field[row])):
+    for element in range(column, len(field[row])):
         if field[row][element] != None:
             if field[row][element][0] in monster_list:
                 damage = random.randint(min_dmg, max_dmg)
@@ -303,12 +322,22 @@ def defender_attack(unit, field, row):
 
                 if unit != "WALL":
                     print("{} in lane {} shoots {} for {} damage!".format(defenders[unit]["name"], letter_columns[row].upper(), monsters[field[row][element][0]]["name"], damage))
-
+                
+                # If the monster dies after taking damage, 
                 if field[row][element][1] <= 0:
+                    # Make changes to game vars
                     game_vars["monsters_killed"] += 1
+                    game_vars["threat"] += monsters[field[row][element][0]]["reward"]
                     game_vars["gold"] += monsters[field[row][element][0]]["reward"]
+                    
+                    # print death and remove from board
                     print("{} dies!".format(monsters[field[row][element][0]]["name"]))
                     field[row][element] = None
+                    # If monsters_killed == 20, win game!
+                    if game_vars["monsters_killed"] == 20:
+                        win_game()
+                
+                break
                     
 
 #-----------------------------------------------------------
@@ -324,39 +353,58 @@ def monster_advance(monster_name, field, row, column):
     # If theres noone, move the number of steps
     # If there is a defender, deal damage instead
     # If kills defender, takes its place.
-    letter_columns = ["a", "b", "c", "d", "e"]
+    letter_columns = ["A", "B", "C", "D", "E"]
 
     max_dmg = monsters[monster_name]["max_damage"]
     min_dmg = monsters[monster_name]["min_damage"]
 
     damage = random.randint(min_dmg, max_dmg)
 
-    # If passes.
-    if column - monsters[monster_name]["moves"] < 0:
-        lose_game()
+    for i in range(monsters[monster_name]["moves"]):
+        if column - 1 < 0:
+            print("A {} has reached the city! All is lost!".format(monsters[monster_name]["name"]))
+            lose_game()
 
-    # If there is none
-    if field[row][column - monsters[monster_name]["moves"]] == None:
-        field[row][column - monsters[monster_name]["moves"]] = field[row][column]
-        field[row][column] = None
-
-    # If there is a defender...
-    elif field[row][column - monsters[monster_name]["moves"]][0] in defender_list:
-
-        field[row][column - monsters[monster_name]["moves"]][1] -= damage
-
-        if field[row][column - monsters[monster_name]["moves"]][1] <= 0:
-            print("{} dies! ".format(field[row][column - monsters[monster_name]["moves"]][0]))
-            print("{} in lane {} advances!".format(monsters[monster_name]["name"], letter_columns[row].upper()))
-
-            field[row][column - monsters[monster_name]["moves"]] = field[row][column]
+        if field[row][column - 1] == None:
+            field[row][column - 1] = field[row][column]
             field[row][column] = None
-    
-    # If there is a monster, do nothing.
-    elif field[row][column - monsters[monster_name]["moves"]][0] in monster_list:
-        pass
-            
 
+            print("{} in lane {} advances!".format(monsters[monster_name]["name"], letter_columns[row]))
+
+            column -= 1
+        
+        elif field[row][column - 1][0] in defender_list:
+            field[row][column - 1][1] -= damage
+            print("{} in lane {} hits {} for {} damange!".format(monsters[monster_name]["name"], letter_columns[row], defenders[field[row][column - 1][0]]["name"], damage))
+
+            if field[row][column - 1][1] <= 0:
+                print("{} dies! ".format(defenders[field[row][column - 1][0]]["name"]))
+                field[row][column - 1] = field[row][column]
+                field[row][column] = None
+            
+        elif field[row][column - 1][0] in monster_list:
+            print("{} in lane {} is blocked from advancing.".format(monsters[monster_name]["name"], letter_columns[row]))
+        
+        
+
+            
+#--------------------------------------------------------------------
+# monster_upgrade()
+#
+#   Increases the stats of monsters min_damage, max_damage, and HP.
+#---------------------------------------------------------------------
+def monster_upgrade(monsters):
+
+    print("The monsters grow stronger...\n")
+
+    game_vars["danger_level"] += 1
+
+    for i in monsters:
+        monsters[i]["maxHP"] += 1
+        monsters[i]["min_damage"] += 1
+        monsters[i]["max_damage"] += 1
+        monsters[i]["reward"] += 1
+        
 
     
 
@@ -375,8 +423,8 @@ def spawn_monster(monster_list):
 
     monster = monster_list[random_monster_num]                          # Gets a monster between Zombies and Werewolves 
     monster_health = monsters[monster]['maxHP']                         # Saves the monster's starting health to a new variable
-
-    field[random_row][-1] = [monster, monster_health]                   # Sets the value in the field as a list with [name, health]
+    monster_maxHP = monsters[monster]['maxHP']  
+    field[random_row][-1] = [monster, monster_health, monster_maxHP]    # Sets the value in the field as a list with [name, health]
     
     
 #-----------------------------------------
@@ -447,7 +495,7 @@ print("Defend the city from undead monsters!")
 print()
 
 main_menu_choice = show_main_menu()
-menu_check(main_menu_choice)
+
 
 
 
