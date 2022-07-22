@@ -198,11 +198,16 @@ def place_unit(unit_name, field):
     position = input("Place where? ")
 
     try:
+        # Asserts that user input is 2 in length, the first letter is in letter_columns and the second number is between 1 and 3
         assert len(position) == 2
         assert position[0].lower() in letter_columns
         assert 1 <= int(position[1]) <= 3
+
+        # Ensures that player can only put unit in an empty position
         if field[letter_columns.index(position[0])][int(position[1]) - 1] == None:
             field[letter_columns.index(position[0])][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
+        
+        # If there is already a unit there, warns the player and reruns the function.
         else:
             print("There is already a unit there!")
             place_unit(unit_name, field)
@@ -246,6 +251,7 @@ def buy_unit():
                 buy_unit()
 
     except (ValueError, AssertionError):
+        print("Invalid Unit!")
         buy_unit()
 
 #--------------------------------------------------------------------
@@ -256,16 +262,8 @@ def buy_unit():
 def end_turn(field):
     # Changes the game turn
     game_vars["turn"] += 1
-    
-    if game_vars["turn"] % 12 == 0:
-        monster_upgrade(monsters=monsters)
 
-    
-
-    if (game_vars["threat"] == 10):
-        game_vars["threat"] = 0
-        spawn_monster(monster_list=monster_list)
-
+    # Checks every unit in every row, if its a defender, defender_attack(), monster_attack() if its a monster, ignore if None
     for row in range(len(field)):
         for unit in range(len(field[row])):
             if field[row][unit] != None:
@@ -274,12 +272,18 @@ def end_turn(field):
                 elif field[row][unit][0] in monster_list:
                     monster_advance(field[row][unit][0], field, row, unit)
     
+    # Every 12 turns, danger level increases
+    if game_vars["turn"] % 12 == 0:
+         monster_upgrade(monsters=monsters)
 
+    # If no more mosters in field, spawn_monster
     if monster_check(field) == True:
         spawn_monster(monster_list)
 
+    # Increase threat amount by random number between 1 and danger level
     game_vars["threat"] += random.randint(1, game_vars["danger_level"])
-
+    
+    # If threat level reaches 10, subtract by 10 and spawn a new monster.
     if (game_vars["threat"] >= 10):
             game_vars["threat"] -= 10
             spawn_monster(monster_list=monster_list)
@@ -314,12 +318,14 @@ def defender_attack(unit, field, row, column):
     min_dmg = defenders[unit]["min_damage"]
 
     for element in range(column, len(field[row])):
+        # If its not none
         if field[row][element] != None:
+            # If the unit is a monster:
             if field[row][element][0] in monster_list:
                 damage = random.randint(min_dmg, max_dmg)
                 field[row][element][1] -= damage
 
-
+                # Prompt damage if unit is not wall.
                 if unit != "WALL":
                     print("{} in lane {} shoots {} for {} damage!".format(defenders[unit]["name"], letter_columns[row].upper(), monsters[field[row][element][0]]["name"], damage))
                 
@@ -332,11 +338,14 @@ def defender_attack(unit, field, row, column):
                     
                     # print death and remove from board
                     print("{} dies!".format(monsters[field[row][element][0]]["name"]))
+                    print("You gain {} gold as a reward.".format(monsters[field[row][element][0]]["reward"]))
                     field[row][element] = None
+
                     # If monsters_killed == 20, win game!
                     if game_vars["monsters_killed"] == 20:
                         win_game()
                 
+                # Breaks loop after shooting at one monster, as monsters behind are unaffected.
                 break
                     
 
@@ -349,10 +358,7 @@ def defender_attack(unit, field, row, column):
 #       - If it goes out of the field, player loses
 #-----------------------------------------------------------
 def monster_advance(monster_name, field, row, column):
-    # Check every element in row reversed
-    # If theres noone, move the number of steps
-    # If there is a defender, deal damage instead
-    # If kills defender, takes its place.
+
     letter_columns = ["A", "B", "C", "D", "E"]
 
     max_dmg = monsters[monster_name]["max_damage"]
@@ -360,28 +366,36 @@ def monster_advance(monster_name, field, row, column):
 
     damage = random.randint(min_dmg, max_dmg)
 
+    # Loops through the number of turns a monster has
     for i in range(monsters[monster_name]["moves"]):
+
+        # If the next move passes the field, player loses.
         if column - 1 < 0:
             print("A {} has reached the city! All is lost!".format(monsters[monster_name]["name"]))
-            lose_game()
+            lose_game() 
 
+        # If there is nothing in front of the monster
         if field[row][column - 1] == None:
             field[row][column - 1] = field[row][column]
             field[row][column] = None
 
             print("{} in lane {} advances!".format(monsters[monster_name]["name"], letter_columns[row]))
 
+            # column - 1 to change the position of the monster
             column -= 1
         
+        # If there is a defender in front of the monster
         elif field[row][column - 1][0] in defender_list:
             field[row][column - 1][1] -= damage
             print("{} in lane {} hits {} for {} damange!".format(monsters[monster_name]["name"], letter_columns[row], defenders[field[row][column - 1][0]]["name"], damage))
 
+            # If defender dies
             if field[row][column - 1][1] <= 0:
                 print("{} dies! ".format(defenders[field[row][column - 1][0]]["name"]))
                 field[row][column - 1] = field[row][column]
                 field[row][column] = None
-            
+        
+        # If there is a monster in front of the monster
         elif field[row][column - 1][0] in monster_list:
             print("{} in lane {} is blocked from advancing.".format(monsters[monster_name]["name"], letter_columns[row]))
         
@@ -395,7 +409,7 @@ def monster_advance(monster_name, field, row, column):
 #---------------------------------------------------------------------
 def monster_upgrade(monsters):
 
-    print("The monsters grow stronger...\n")
+    print("The evil gros stronger!\n")
 
     game_vars["danger_level"] += 1
 
@@ -423,8 +437,12 @@ def spawn_monster(monster_list):
 
     monster = monster_list[random_monster_num]                          # Gets a monster between Zombies and Werewolves 
     monster_health = monsters[monster]['maxHP']                         # Saves the monster's starting health to a new variable
-    monster_maxHP = monsters[monster]['maxHP']  
-    field[random_row][-1] = [monster, monster_health, monster_maxHP]    # Sets the value in the field as a list with [name, health]
+    monster_maxHP = monsters[monster]['maxHP']
+
+    if field[random_row][-1] == None:  
+        field[random_row][-1] = [monster, monster_health, monster_maxHP]    # Sets the value in the field as a list with [name, health]
+    else:
+        spawn_monster(monster_list)
     
     
 #-----------------------------------------
