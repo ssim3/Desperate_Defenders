@@ -13,8 +13,8 @@ game_vars = {
     'danger_level': 1,              # Rate at which threat increases
     }
 
-defender_list = ['ARCHR', 'WALL', 'MINE', 'HEAL']
-monster_list = ['ZOMBI', 'WWOLF']
+defender_list = ['ARCHR', 'WALL', 'MINE', 'HEAL', 'CANON']
+monster_list = ['ZOMBI', 'WWOLF', 'SKELE', 'GOLEM']
 
 defenders = {'ARCHR': {'name': 'Archer',
                        'maxHP': 5,
@@ -46,6 +46,15 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'max_damage': 5,
                       'price': 8,
                       'upgrade_cost': 12                     
+                     },
+            
+             'CANON': {'name': 'Cannon',
+                      'maxHP': 8,
+                      'min_damage': 3,
+                      'max_damage': 5,
+                      'price': 7,
+                      'upgrade_cost': 8,
+                      'turn': ""                    
                      }
             
              }
@@ -64,7 +73,23 @@ monsters = {'ZOMBI': {'name': 'Zombie',
                       'max_damage': 4,
                       'moves' : 2,
                       'reward': 3
-                      }
+                      },
+
+            'SKELE': {'name': 'Skeleton',
+                      'maxHP': 10,
+                      'min_damage': 1,
+                      'max_damage': 3,
+                      'moves' : 1,
+                      'reward': 3
+                    },
+            
+            'GOLEM': {'name': 'Golem',
+                      'maxHP': 20,
+                      'min_damage': 1,
+                      'max_damage': 2,
+                      'moves' : 1,
+                      'reward': 4
+                    }
             }
 
 field = [ [None, None, None, None, None, None, None],
@@ -230,7 +255,8 @@ def place_unit(unit_name, field):
         # Ensures that player can only put unit in an empty position
         elif field[letter_columns.index(position[0])][int(position[1]) - 1] == None:
             field[letter_columns.index(position[0])][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
-        
+
+
         # If there is already a unit there, warns the player and reruns the function.
         else:
             print("There is already a unit there!")
@@ -382,7 +408,20 @@ def defender_attack(unit, field, row, column):
             # If the unit is a monster:
             if field[row][element][0] in monster_list:
                 damage = random.randint(min_dmg, max_dmg)
+
+                # Every other turn, cannon is unable to fire
+                if game_vars["turn"] % 2 != 0 and unit == "CANON":
+                    print("Charging Cannon...")
+                    break
+
+
+                # Skeletons take half damage from Archers
+                if unit == "ARCHR" and field[row][element][0] == "SKELE":
+                    damage = round(damage / 2)
+                
+                # Monster takes damage.
                 field[row][element][1] -= damage
+
 
                 # Prompt damage if unit is not wall.
                 if unit != "WALL":
@@ -404,6 +443,14 @@ def defender_attack(unit, field, row, column):
                     if game_vars["monsters_killed"] == 20:
                         win_game()
                 
+                # If units a cannon, 50% chance for knocback
+                if unit == "CANON":
+                    chance = random.randint(0, 1)
+                    if chance == 0 and element != len(field[0]) - 1:
+                        print("Cannon pushes {} back!".format(monsters[field[row][element][0]]["name"]))
+                        field[row][element + 1] = field[row][element]
+                        field[row][element] = None    
+
                 # Breaks loop after shooting at one monster, as monsters behind are unaffected.
                 break
 
@@ -451,6 +498,11 @@ def monster_advance(monster_name, field, row, column):
 
     # Loops through the number of turns a monster has
     for i in range(monsters[monster_name]["moves"]):
+        
+        # Golem Monster only attacks every other turn!
+        if game_vars["turn"] % 2 == 0 and monster_name == "GOLEM":
+            print("Golem readies itself...")
+            break
 
         # If the next move passes the field, player loses.
         if column - 1 < 0:
@@ -484,7 +536,7 @@ def monster_advance(monster_name, field, row, column):
                         # If the unit is a monster
                         if field[i][j] != None and field[i][j][0] in monster_list:
                             field[i][j][1] -= defenders["MINE"]["min_damage"]
-                            print("{} steps on Mine in lane {}!. \nMine in lane {} explodes!".format(monsters[monster_name]["name"], letter_columns[i],  letter_columns[i]))
+                            print("{} steps on Mine in lane {}! \nMine in lane {} explodes and deals {} damage!".format(monsters[monster_name]["name"], letter_columns[i],  letter_columns[i], defenders["MINE"]["min_damage"]))
 
                             # If monster dies
                             if field[i][j][1] <= 0:
@@ -509,7 +561,7 @@ def monster_advance(monster_name, field, row, column):
                     field[row][column] = None
         
         # If there is a monster in front of the monster
-        elif field[row][column - 1][0] in monster_list:
+        elif field[row][column - 1][0] in monster_list: 
             print("{} in lane {} is blocked from advancing.".format(monsters[monster_name]["name"], letter_columns[row]))
         
         
@@ -528,6 +580,11 @@ def defender_upgrade(choice):
     # If wall, increase HP by 5
     elif defender_list[choice - 1] == "WALL":
         defenders[defender_list[choice - 1]]["maxHP"] += 5
+    
+    else:
+        defenders[defender_list[choice - 1]]["max_damage"] += 2
+        defenders[defender_list[choice - 1]]["min_damage"] += 2
+    
 
     # Increase defender costs incrementing by 2
     defenders[defender_list[choice - 1]]["upgrade_cost"] += 2
@@ -568,7 +625,7 @@ def spawn_monster(monster_list):
     random_monster_num = random.randint(0, 1)
 
     random_row = random.randint(0, 4)                                   # Random integer for random row
-    random_monster_num = random.randint(0, 1)                           # Random integer for random monster
+    random_monster_num = random.randint(0, len(monster_list) - 1)                           # Random integer for random monster
 
     monster = monster_list[random_monster_num]                          # Gets a monster between Zombies and Werewolves 
     monster_health = monsters[monster]['maxHP']                         # Saves the monster's starting health to a new variable
