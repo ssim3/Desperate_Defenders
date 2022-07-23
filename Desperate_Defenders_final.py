@@ -53,8 +53,7 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'min_damage': 3,
                       'max_damage': 5,
                       'price': 7,
-                      'upgrade_cost': 8,
-                      'turn': ""                    
+                      'upgrade_cost': 8,                  
                      }
             
              }
@@ -84,7 +83,7 @@ monsters = {'ZOMBI': {'name': 'Zombie',
                     },
             
             'GOLEM': {'name': 'Golem',
-                      'maxHP': 20,
+                      'maxHP': 30,
                       'min_damage': 1,
                       'max_damage': 2,
                       'moves' : 1,
@@ -442,6 +441,8 @@ def defender_attack(unit, field, row, column):
                     # If monsters_killed == 20, win game!
                     if game_vars["monsters_killed"] == 20:
                         win_game()
+                    
+                    break
                 
                 # If units a cannon, 50% chance for knocback
                 if unit == "CANON":
@@ -547,9 +548,7 @@ def monster_advance(monster_name, field, row, column):
                 field[row][column - 1] = field[row][column]
                 field[row][column] = None
 
-
-                
-
+            # IF MONSTER COMES ACROSS REGULAR DEFENDER....
             else:
                 field[row][column - 1][1] -= damage
                 print("{} in lane {} hits {} for {} damange!".format(monsters[monster_name]["name"], letter_columns[row], defenders[field[row][column - 1][0]]["name"], damage))
@@ -631,8 +630,10 @@ def spawn_monster(monster_list):
     monster_health = monsters[monster]['maxHP']                         # Saves the monster's starting health to a new variable
     monster_maxHP = monsters[monster]['maxHP']
 
+    # If the space is empty, spawn a monster
     if field[random_row][-1] == None:  
         field[random_row][-1] = [monster, monster_health, monster_maxHP]    # Sets the value in the field as a list with [name, health]
+    # Else, redo the function until get an empty space (Ensures that monsters aren't replaced)
     else:
         spawn_monster(monster_list)
     
