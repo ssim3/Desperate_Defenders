@@ -324,7 +324,7 @@ def end_turn(field):
     for row in range(len(field)):
         for unit in range(len(field[row])):
             if field[row][unit] != None:
-                if field[row][unit][0] in defender_list:
+                if field[row][unit][0] in defender_list and field[row][unit][0] != "MINE":
                     defender_attack(field[row][unit][0], field, row, unit)    
                 elif field[row][unit][0] in monster_list:
                     monster_advance(field[row][unit][0], field, row, unit)
@@ -413,7 +413,23 @@ def defender_attack(unit, field, row, column):
 #   Heals units within a 3 x 3 square
 #----------------------------------------------------------
 def heal_units(position):
-    pass
+    letter_columns = ["a", "b", "c", "d", "e"]
+    row, column = letter_columns.index(position[0]), int(position[1]) - 1
+
+    row_addition = 2
+    if row == 4:
+        row_addition = 1
+
+    for i in range(row - 1, row + row_addition):
+        for j in range(column - 1, column + 2):
+            if field[i][j] != None and field[i][j][0] in defender_list:
+                if field[i][j][1] + 5 > field[i][j][2]:
+                    field[i][j][1] += (field[i][j][2] - field[i][j][1])
+                else:
+                    field[i][j][1] += defenders["HEAL"]["min_damage"] 
+
+    print("Your defenders were healed!")
+
                     
 
 #-----------------------------------------------------------
@@ -453,14 +469,44 @@ def monster_advance(monster_name, field, row, column):
         
         # If there is a defender in front of the monster
         elif field[row][column - 1][0] in defender_list:
-            field[row][column - 1][1] -= damage
-            print("{} in lane {} hits {} for {} damange!".format(monsters[monster_name]["name"], letter_columns[row], defenders[field[row][column - 1][0]]["name"], damage))
 
-            # If defender dies
-            if field[row][column - 1][1] <= 0:
-                print("{} dies! ".format(defenders[field[row][column - 1][0]]["name"]))
+            # If the monster steps on a mine
+            if field[row][column - 1][0] == "MINE":
+                
+                # If mine is in Lane E, dont check for next row.
+                row_addition = 2
+                if row == 4:
+                    row_addition = 1
+
+                # Loops through 3 x 3 square (Depends on row)
+                for i in range(row - 1, row + row_addition):
+                    for j in range(column - 2, column + 1):
+                        # If the unit is a monster
+                        if field[i][j] != None and field[i][j][0] in monster_list:
+                            field[i][j][1] -= defenders["MINE"]["min_damage"]
+                            print("{} steps on Mine in lane {}!. \nMine in lane {} explodes!".format(monsters[monster_name]["name"], letter_columns[i],  letter_columns[i]))
+
+                            # If monster dies
+                            if field[i][j][1] <= 0:
+                                print("{} dies! ".format(monsters[field[i][j][0]]["name"]))
+                                field[i][j] = None
+
+                # Monster advances if its still alive.
                 field[row][column - 1] = field[row][column]
                 field[row][column] = None
+
+
+                
+
+            else:
+                field[row][column - 1][1] -= damage
+                print("{} in lane {} hits {} for {} damange!".format(monsters[monster_name]["name"], letter_columns[row], defenders[field[row][column - 1][0]]["name"], damage))
+
+                # If defender dies
+                if field[row][column - 1][1] <= 0:
+                    print("{} dies! ".format(defenders[field[row][column - 1][0]]["name"]))
+                    field[row][column - 1] = field[row][column]
+                    field[row][column] = None
         
         # If there is a monster in front of the monster
         elif field[row][column - 1][0] in monster_list:
@@ -578,12 +624,15 @@ def save_game(field, game_vars):
 
         save_file.close()
     
+    show_combat_menu()
+    
 #-----------------------------------------
 # load_game()
 #
 #    Loads the game from 'save.txt'
 #-----------------------------------------
 def load_game():
+    
     with open("save.txt", "r") as save_file:
         print("Loading saved game....")
         
@@ -593,33 +642,35 @@ def load_game():
         if len(variables_and_field) != 6:
             print("Failed to load save file...Returning to main menu")
             show_main_menu()
-        
-        # First line is game variables
-        game_variables = variables_and_field[0].strip("\n").split(",")
+        else:
+            # First line is game variables
+            game_variables = variables_and_field[0].strip("\n").split(",")
 
-        # enumerate creates an index value pair, e.g., (0, turn), (1, maxHP)
-        for i, j  in enumerate(game_vars):
-            game_vars[j] = int(game_variables[i])
-        
-        # For every row in field
-        for row in range(len(field)):
-            # Temp row is the second line onwards of the txt file split into a list.
-            temp_row = variables_and_field[row + 1].strip("\n").split("-")
-            
-            # For every element in each row
-            for column in range((len(field[0]))):
-                # If it is "None" in the txt file, the element becomes NoneType
-                if temp_row[column] == "None":
-                    field[row][column] = None
-                
-                # If it is not None, split the list into 3, then save the first (name), second (hp) and third (maxHP) values accordingly
-                else:
-                    temp_info = temp_row[column].strip("]").strip("[").split(",")
-                    field[row][column] = [temp_info[0].strip("'"), int(temp_info[1]), int(temp_info[2])]
-        
+            # enumerate creates an index value pair, e.g., (0, turn), (1, maxHP)
+            for i, j  in enumerate(game_vars):
+                game_vars[j] = int(game_variables[i])
+
+            # For every row in field
+            for row in range(len(field)):
+                # Temp row is the second line onwards of the txt file split into a list.
+                temp_row = variables_and_field[row + 1].strip("\n").split("-")
+
+                # For every element in each row
+                for column in range((len(field[0]))):
+                    # If it is "None" in the txt file, the element becomes NoneType
+                    if temp_row[column] == "None":
+                        field[row][column] = None
+
+                    # If it is not None, split the list into 3, then save the first (name), second (hp) and third (maxHP) values accordingly
+                    else:
+                        temp_info = temp_row[column].strip("]").strip("[").split(",")
+                        field[row][column] = [temp_info[0].strip("'"), int(temp_info[1]), int(temp_info[2])]
+
+            draw_field()
+
         save_file.close()
         
-    draw_field()
+    
 
 
 #-----------------------------------------
