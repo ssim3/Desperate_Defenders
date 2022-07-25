@@ -238,14 +238,17 @@ def menu_check(option):
 #-----------------------------------------------------
 
 def place_unit(unit_name, field):       
-    letter_columns = ["a", "b", "c", "d", "e"]
-    position = input("Place where? ")
+    letter_columns = ["a", "b", "c", "d", "e", "x"]
+    position = input("Place where? (x1) to exit: ")
 
     try:
         # Asserts that user input is 2 in length, the first letter is in letter_columns and the second number is between 1 and 3
         assert len(position) == 2
         assert position[0].lower() in letter_columns
         assert 1 <= int(position[1]) <= 3
+
+        if position == "x1":
+            buy_unit()
 
         # If player is putting down a heal
         if unit_name == "HEAL":
