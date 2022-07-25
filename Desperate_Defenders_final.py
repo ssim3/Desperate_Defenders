@@ -238,8 +238,8 @@ def menu_check(option):
 #-----------------------------------------------------
 
 def place_unit(unit_name, field):       
-    letter_columns = ["a", "b", "c", "d", "e", "x"]
-    position = input("Place where? (x1) to exit: ")
+    letter_columns = ["a", "b", "c", "d", "e"]
+    position = input("Place where?")
 
     try:
         # Asserts that user input is 2 in length, the first letter is in letter_columns and the second number is between 1 and 3
@@ -247,16 +247,14 @@ def place_unit(unit_name, field):
         assert position[0].lower() in letter_columns
         assert 1 <= int(position[1]) <= 3
 
-        if position == "x1":
-            buy_unit()
 
         # If player is putting down a heal
         if unit_name == "HEAL":
             heal_units(position=position)
 
         # Ensures that player can only put unit in an empty position
-        elif field[letter_columns.index(position[0])][int(position[1]) - 1] == None:
-            field[letter_columns.index(position[0])][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
+        elif field[letter_columns.index(position[0].lower())][int(position[1]) - 1] == None:
+            field[letter_columns.index(position[0].lower())][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
 
 
         # If there is already a unit there, warns the player and reruns the function.
