@@ -1,5 +1,6 @@
 import random
 import sys, os
+from turtle import width
 
 # Game variables
 game_vars = {
@@ -107,7 +108,7 @@ field = [ [None, None, None, None, None, None, None],
 #----------------------------------------------------------------------
 
 def draw_field():
-    letters = ["A", "B", "C", "D", "E"]                             # List of letters
+    letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]                              # List of letters
 
     
     print(" {:^7}{:^6}{:^5}".format(1, 2, 3))                        # prints out the header numbers
@@ -148,8 +149,8 @@ def draw_field():
 #   Displays the game variables
 #----------------------------
 def show_game_vars():
-    print("Turn {:<}     Threat = [{:<10}]     Danger level {:<}".format(game_vars["turn"], "-" * game_vars["threat"], game_vars["danger_level"]))
-    print("Gold = {}   Monsters killed = {}/20".format(game_vars["gold"], game_vars["monsters_killed"]))
+    print("Turn {num:<}     Threat = [{threat:{width}}]     Danger level {danger:<}".format(num=game_vars["turn"], threat=str("-" * game_vars["threat"]), width= game_vars["max_threat"], danger=game_vars["danger_level"]))
+    print("Gold = {}   Monsters killed = {}/{}".format(game_vars["gold"], game_vars["monsters_killed"], game_vars["monster_kill_target"]))
 
 
 #----------------------------
@@ -198,11 +199,12 @@ def check_combat_choice(choice):
 def show_main_menu():
     print("1. Start new game")
     print("2. Load saved game")
-    print("3. Quit")
+    print("3. Game Options")
+    print("4. Quit")
 
     try:
         choice = int(input("Your choice? "))
-        assert 1 <= choice <= 3
+        assert 1 <= choice <= 4
         
         menu_check(choice)
 
@@ -222,6 +224,8 @@ def menu_check(option):
     elif option == 2:
         load_game()
     elif option == 3:
+        game_options()
+    elif option == 4:
         print("See you next time!")
 
 
@@ -238,35 +242,40 @@ def menu_check(option):
 #-----------------------------------------------------
 
 def place_unit(unit_name, field):       
-    letter_columns = ["a", "b", "c", "d", "e"]
-    position = input("Place where?")
+    letter_columns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]  
+    position = input("Place where? (X to cancel) ")
 
-    try:
-        # Asserts that user input is 2 in length, the first letter is in letter_columns and the second number is between 1 and 3
-        assert len(position) == 2
-        assert position[0].lower() in letter_columns
-        assert 1 <= int(position[1]) <= 3
-
-
-        # If player is putting down a heal
-        if unit_name == "HEAL":
-            heal_units(position=position)
-
-        # Ensures that player can only put unit in an empty position
-        elif field[letter_columns.index(position[0].lower())][int(position[1]) - 1] == None:
-            field[letter_columns.index(position[0].lower())][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
+    if position.lower() == "x":
+        game_vars["gold"] += defenders[unit_name]["price"]
+        buy_unit()
+    
+    else:
+        try:
+            # Asserts that user input is 2 in length, the first letter is in letter_columns and the second number is between 1 and 3
+            assert len(position) == 2
+            assert position[0].upper() in letter_columns
+            assert 1 <= int(position[1]) <= 3
 
 
-        # If there is already a unit there, warns the player and reruns the function.
-        else:
-            print("There is already a unit there!")
-            place_unit(unit_name, field)
+            # If player is putting down a heal
+            if unit_name == "HEAL":
+                heal_units(position=position)
 
-        end_turn(field)
+            # Ensures that player can only put unit in an empty position
+            elif field[letter_columns.index(position[0].upper())][int(position[1]) - 1] == None:
+                field[letter_columns.index(position[0].upper())][int(position[1]) - 1] = [unit_name, defenders[unit_name]["maxHP"], defenders[unit_name]["maxHP"]]
 
-    except (ValueError, AssertionError):                                                         
-        print("Invalid position!")
-        place_unit(unit_name, field)  
+
+            # If there is already a unit there, warns the player and reruns the function.
+            else:
+                print("There is already a unit there!")
+                place_unit(unit_name, field)
+
+            end_turn(field)
+
+        except (ValueError, AssertionError):                                                         
+            print("Invalid position!")
+            place_unit(unit_name, field)  
 
 #-------------------------------------------------------------------
 # buy_unit()
@@ -367,8 +376,8 @@ def end_turn(field):
     game_vars["threat"] += random.randint(1, game_vars["danger_level"])
     
     # If threat level reaches 10, subtract by 10 and spawn a new monster.
-    if (game_vars["threat"] >= 10):
-            game_vars["threat"] -= 10
+    if (game_vars["threat"] >= game_vars["max_threat"]):
+            game_vars["threat"] -= game_vars["max_threat"]
             spawn_monster(monster_list=monster_list)
 
     game_vars["gold"] += 1
@@ -431,6 +440,7 @@ def defender_attack(unit, field, row, column):
                 if field[row][element][1] <= 0:
                     # Make changes to game vars
                     game_vars["monsters_killed"] += 1
+                    game_vars["num_monsters"] -= 1
                     game_vars["threat"] += monsters[field[row][element][0]]["reward"]
                     game_vars["gold"] += monsters[field[row][element][0]]["reward"]
                     
@@ -440,7 +450,7 @@ def defender_attack(unit, field, row, column):
                     field[row][element] = None
 
                     # If monsters_killed == 20, win game!
-                    if game_vars["monsters_killed"] == 20:
+                    if game_vars["monsters_killed"] == game_vars["monster_kill_target"]:
                         win_game()
                     
                     break
@@ -472,7 +482,7 @@ def heal_units(position):
     for i in range(row - 1, row + row_addition):
         for j in range(column - 1, column + 2):
             if field[i][j] != None and field[i][j][0] in defender_list:
-                if field[i][j][1] + 5 > field[i][j][2]:
+                if field[i][j][1] + defenders["HEAL"]["min_damage"]  > field[i][j][2]:
                     field[i][j][1] += (field[i][j][2] - field[i][j][1])
                 else:
                     field[i][j][1] += defenders["HEAL"]["min_damage"] 
@@ -621,22 +631,26 @@ def monster_upgrade(monsters):
 #    Assumes you will never place more than 5 monsters in one turn.
 #---------------------------------------------------------------------
 def spawn_monster(monster_list):
-    random_row = random.randint(0, 4)
-    random_monster_num = random.randint(0, 1)
 
-    random_row = random.randint(0, 4)                                   # Random integer for random row
-    random_monster_num = random.randint(0, len(monster_list) - 1)                           # Random integer for random monster
+    if (game_vars["num_monsters"] < 5):
 
-    monster = monster_list[random_monster_num]                          # Gets a monster between Zombies and Werewolves 
-    monster_health = monsters[monster]['maxHP']                         # Saves the monster's starting health to a new variable
-    monster_maxHP = monsters[monster]['maxHP']
+        random_row = random.randint(0, len(field) - 1)
+        random_monster_num = random.randint(0, 1)
 
-    # If the space is empty, spawn a monster
-    if field[random_row][-1] == None:  
-        field[random_row][-1] = [monster, monster_health, monster_maxHP]    # Sets the value in the field as a list with [name, health]
-    # Else, redo the function until get an empty space (Ensures that monsters aren't replaced)
-    else:
-        spawn_monster(monster_list)
+        random_row = random.randint(0, 4)                                   # Random integer for random row
+        random_monster_num = random.randint(0, len(monster_list) - 1)                           # Random integer for random monster
+
+        monster = monster_list[random_monster_num]                          # Gets a monster between Zombies and Werewolves 
+        monster_health = monsters[monster]['maxHP']                         # Saves the monster's starting health to a new variable
+        monster_maxHP = monsters[monster]['maxHP']
+
+        # If the space is empty, spawn a monster
+        if field[random_row][-1] == None:  
+            field[random_row][-1] = [monster, monster_health, monster_maxHP]    # Sets the value in the field as a list with [name, health]
+            game_vars["num_monsters"] += 1
+        # Else, redo the function until get an empty space (Ensures that monsters aren't replaced)
+        else:
+            spawn_monster(monster_list)
     
     
 #-----------------------------------------
@@ -729,8 +743,54 @@ def load_game():
 
         save_file.close()
         
-    
+#-----------------------------------------
+# game_options()
+#
+#    Allows user to specify threat levels, etc.
+#-----------------------------------------
+def game_options():
+    print("\n---------------------SETTINGS---------------------")
+    print("1. Threat Level")
+    print("2. Monster Kill Target")
 
+    print("3. Back to Main Menu")
+
+    choice = int(input("Which setting would you like to change? "))
+
+    try:
+        assert 1 <= choice <= 3
+
+        if choice == 1:
+            threat_level = int(input("Enter the max threat: (The higher the easier, MAX 30)"))
+
+            if threat_level < 5 or threat_level > 30:
+                print("Invalid Threat Level! (Min 5, Max 30)")
+                game_options()
+            else:
+                game_vars["max_threat"] = threat_level
+                game_options()
+
+        elif choice == 2:
+            kill_target = int(input("Enter the monster kill target: (Min 5)"))
+
+            if kill_target < 5:
+                print("Invalid Monster Kill Target! (Min 5)")
+                game_options()
+            
+            else:
+                game_vars["monster_kill_target"] = kill_target
+                game_options()
+        
+        elif choice == 3:
+            show_main_menu()
+
+
+    except (AssertionError, ValueError):
+        print("Invalid input!")
+        game_options()
+
+
+    
 
 #-----------------------------------------
 # new_game()
@@ -749,7 +809,6 @@ def new_game():
 #-----------------------------------------------------
 def initialize_game():
     game_vars['turn'] = 0
-    game_vars['monster_kill_target'] = 20
     game_vars['monsters_killed'] = 0
     game_vars['num_monsters'] = 0
     game_vars['gold'] = 10
