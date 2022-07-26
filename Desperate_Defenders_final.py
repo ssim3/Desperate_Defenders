@@ -14,7 +14,7 @@ game_vars = {
     'danger_level': 1,              # Rate at which threat increases
     }
 
-defender_list = ['ARCHR', 'WALL', 'MINE', 'HEAL', 'CANON']
+defender_list = ['ARCHR', 'WALL', 'MINE', 'HEAL', 'CANON', "NUKE"]
 monster_list = ['ZOMBI', 'WWOLF', 'SKELE', 'GOLEM']
 
 defenders = {'ARCHR': {'name': 'Archer',
@@ -42,7 +42,6 @@ defenders = {'ARCHR': {'name': 'Archer',
                       },
 
              'HEAL': {'name': 'Heal',
-                      'maxHP': 0,
                       'min_damage': 5,
                       'max_damage': 5,
                       'price': 8,
@@ -55,8 +54,14 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'max_damage': 5,
                       'price': 7,
                       'upgrade_cost': 8,                  
+                     },
+
+             'NUKE': {'name': 'Nuclear',
+                      'min_damage': 15,
+                      'max_damage': 15,
+                      'price': 12,
+                      'upgrade_cost': 15,   
                      }
-            
              }
 
 monsters = {'ZOMBI': {'name': 'Zombie',
@@ -260,6 +265,10 @@ def place_unit(unit_name, field):
             # If player is putting down a heal
             if unit_name == "HEAL":
                 heal_units(position=position)
+            
+            if unit_name == "NUKE":
+                nuke_units(position = position)
+
 
             # Ensures that player can only put unit in an empty position
             elif field[letter_columns.index(position[0].upper())][int(position[1]) - 1] == None:
@@ -287,7 +296,12 @@ def buy_unit():
 
     # Loops through defender list, prints out name and price of each defender
     for i in range(len(defender_list)):        
-        print("{}. {} ({} gold)".format(i + 1, defenders[defender_list[i]]["name"], defenders[defender_list[i]]["price"]))
+        print("{}. {} ({} gold)".format(i + 1, defenders[defender_list[i]]["name"], defenders[defender_list[i]]["price"]), end="")
+
+        if defender_list[i] == "NUKE":
+            print(" **DAMAGES ALLIES**")
+        else:
+            print("")
     
     print(f"{i + 2}. Don't buy")
 
@@ -476,7 +490,7 @@ def heal_units(position):
     row, column = letter_columns.index(position[0]), int(position[1]) - 1
 
     row_addition = 2
-    if row == 4:
+    if row == len(letter_columns) - 1:
         row_addition = 1
 
     for i in range(row - 1, row + row_addition):
@@ -489,6 +503,37 @@ def heal_units(position):
 
     print("Your defenders were healed!")
 
+#------------------------------------------------------------
+# nuke_units()
+#
+#   Nukes all units in a 3x3 square, including defenders
+#------------------------------------------------------------
+def nuke_units(position):
+    letter_columns = ["a", "b", "c", "d", "e"]
+    row, column = letter_columns.index(position[0]), int(position[1]) - 1
+
+    row_addition = 2
+    if row == len(letter_columns) - 1:
+        row_addition = 1
+
+    for i in range(row - 1, row + row_addition):
+        for j in range(column - 1, column + 2):
+            if field[i][j] != None:
+                field[i][j][1] -= defenders["NUKE"]["max_damage"]
+
+                if field[i][j][0] in defender_list:
+                    print("Nuke damages {} for {} damage!".format(defenders[field[i][j][0]]["name"], defenders["NUKE"]["max_damage"]))
+                elif field[i][j][0] in monster_list:
+                    print("Nuke damages {} for {} damage!".format(monsters[field[i][j][0]]["name"], defenders["NUKE"]["max_damage"]))
+
+                if field[i][j][1] < 1:
+                    if field[i][j][0] in defender_list:
+                        print("{} dies! ".format(defenders[field[i][j][0]]["name"]))
+                    elif field[i][j][0] in monster_list:
+                        print("{} dies! ".format(monsters[field[i][j][0]]["name"]))
+                    
+                    field[i][j] = None
+            
                     
 
 #-----------------------------------------------------------
