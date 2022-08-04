@@ -133,8 +133,10 @@ def draw_field():
         print(" ",end="")                                           # Extra space so field is even
         for h in range(len(field[i])):                              # Loops through ever element in each row and prints out health
             if field[i][h] != None:  
+
                 if field[i][h][0] in monster_list:                   
                     print("|{:>2}/{:<2}".format(field[i][h][1], field[i][h][2]), end="")
+
                 elif field[i][h][0] in defender_list:
                     print("|{:>2}/{:<2}".format(field[i][h][1], field[i][h][2]), end="")
             else:
@@ -266,7 +268,7 @@ def place_unit(unit_name, field):
             if unit_name == "HEAL":
                 heal_units(position=position)
             
-            if unit_name == "NUKE":
+            elif unit_name == "NUKE":
                 nuke_units(position = position)
 
 
@@ -300,6 +302,7 @@ def buy_unit():
 
         if defender_list[i] == "NUKE":
             print(" **DAMAGES ALLIES**")
+            
         else:
             print("")
     
@@ -469,7 +472,7 @@ def defender_attack(unit, field, row, column):
                     
                     break
                 
-                # If units a cannon, 50% chance for knocback
+                # If units a cannon, 50% chance for knockback
                 if unit == "CANON":
                     chance = random.randint(0, 1)
                     if chance == 0 and element != len(field[0]) - 1:
@@ -870,7 +873,7 @@ print("-------------------")
 print("Defend the city from undead monsters!")
 print()
 
-main_menu_choice = show_main_menu()
+show_main_menu()
 
 
 
