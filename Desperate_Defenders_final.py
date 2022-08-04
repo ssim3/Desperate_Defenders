@@ -1,6 +1,5 @@
 import random
 import sys, os
-from turtle import width
 
 # Game variables
 game_vars = {
@@ -12,6 +11,7 @@ game_vars = {
     'threat': 0,                    # Current threat metre level
     'max_threat': 10,               # Length of threat metre
     'danger_level': 1,              # Rate at which threat increases
+    'survival': 0               # Boolean whether the user is playing endless mode or not
     }
 
 defender_list = ['ARCHR', 'WALL', 'MINE', 'HEAL', 'CANON', "NUKE"]
@@ -157,7 +157,12 @@ def draw_field():
 #----------------------------
 def show_game_vars():
     print("Turn {num:<}     Threat = [{threat:{width}}]     Danger level {danger:<}".format(num=game_vars["turn"], threat=str("-" * game_vars["threat"]), width= game_vars["max_threat"], danger=game_vars["danger_level"]))
-    print("Gold = {}   Monsters killed = {}/{}".format(game_vars["gold"], game_vars["monsters_killed"], game_vars["monster_kill_target"]))
+    print("Gold = {}".format(game_vars["gold"]), end="   ")
+
+    if game_vars["survival"] == False:
+        print("Monsters killed = {}/{}".format(game_vars["monsters_killed"], game_vars["monster_kill_target"]))
+    else:
+        print("Monsters killed = {}".format(game_vars["monsters_killed"]))
 
 
 #----------------------------
@@ -205,14 +210,14 @@ def check_combat_choice(choice):
 #----------------------------
 def show_main_menu():
     print("1. Start new game")
-    print("2. Load saved game")
-    print("3. Game Options")
-    print("4. Quit")
+    print("2. Start new Survival Mode")
+    print("3. Load saved game")
+    print("4. Game Options")
+    print("5. Quit")
 
     try:
         choice = int(input("Your choice? "))
-        assert 1 <= choice <= 4
-        
+        assert 1 <= choice <= 5
         menu_check(choice)
 
     except (ValueError, AssertionError):
@@ -229,10 +234,14 @@ def menu_check(option):
     if option == 1:
         new_game()
     elif option == 2:
-        load_game()
+        game_vars["survival"] = 1
+        game_vars["monster_kill_target"] = -1
+        new_game()
     elif option == 3:
-        game_options()
+        load_game()
     elif option == 4:
+        game_options()
+    elif option == 5:
         print("See you next time!")
 
 
@@ -476,9 +485,10 @@ def defender_attack(unit, field, row, column):
                 if unit == "CANON":
                     chance = random.randint(0, 1)
                     if chance == 0 and element != len(field[0]) - 1:
-                        print("Cannon pushes {} back!".format(monsters[field[row][element][0]]["name"]))
-                        field[row][element + 1] = field[row][element]
-                        field[row][element] = None    
+                        if field[row][element + 1] == None:
+                            print("Cannon pushes {} back!".format(monsters[field[row][element][0]]["name"]))
+                            field[row][element + 1] = field[row][element]
+                            field[row][element] = None    
 
                 # Breaks loop after shooting at one monster, as monsters behind are unaffected.
                 break
@@ -596,7 +606,7 @@ def monster_advance(monster_name, field, row, column):
                         # If the unit is a monster
                         if field[i][j] != None and field[i][j][0] in monster_list:
                             field[i][j][1] -= defenders["MINE"]["min_damage"]
-                            print("{} steps on Mine in lane {}! \nMine in lane {} explodes and deals {} damage!".format(monsters[monster_name]["name"], letter_columns[i],  letter_columns[i], defenders["MINE"]["min_damage"]))
+                            print("Mine in lane {} explodes and deals {} damage!".format(letter_columns[i],  defenders["MINE"]["min_damage"]))
 
                             # If monster dies
                             if field[i][j][1] <= 0:
@@ -686,7 +696,7 @@ def spawn_monster(monster_list):
         random_monster_num = random.randint(0, 1)
 
         random_row = random.randint(0, 4)                                   # Random integer for random row
-        random_monster_num = random.randint(0, len(monster_list) - 1)                           # Random integer for random monster
+        random_monster_num = random.randint(0, len(monster_list) - 1)       # Random integer for random monster
 
         monster = monster_list[random_monster_num]                          # Gets a monster between Zombies and Werewolves 
         monster_health = monsters[monster]['maxHP']                         # Saves the monster's starting health to a new variable
@@ -717,6 +727,10 @@ def win_game():
 #-----------------------------------------
 def lose_game():
     print("You have lost the game!")
+
+    if game_vars["survival"] == 1:
+        print("You survived a total of {} turns and killed {} monsters!".format(game_vars["turn"], game_vars["monsters_killed"]))
+
     raise SystemExit(0)
 
 # save_game()
