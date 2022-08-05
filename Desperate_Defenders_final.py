@@ -1,5 +1,6 @@
 import random
 import sys, os
+from turtle import update
 
 # Game variables
 game_vars = {
@@ -11,7 +12,7 @@ game_vars = {
     'threat': 0,                    # Current threat metre level
     'max_threat': 10,               # Length of threat metre
     'danger_level': 1,              # Rate at which threat increases
-    'survival': 0               # Boolean whether the user is playing endless mode or not
+    'survival': 0,                   # Boolean whether the user is playing endless mode or not
     }
 
 defender_list = ['ARCHR', 'WALL', 'MINE', 'HEAL', 'CANON', "NUKE"]
@@ -22,7 +23,8 @@ defenders = {'ARCHR': {'name': 'Archer',
                        'min_damage': 1,
                        'max_damage': 4,
                        'price': 5,
-                       'upgrade_cost': 8
+                       'upgrade_cost': 8,
+                       'level': 0
                        },
              
              'WALL': {'name': 'Wall',
@@ -30,7 +32,8 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'min_damage': 0,
                       'max_damage': 0,
                       'price': 3,
-                      'upgrade_cost': 6
+                      'upgrade_cost': 6,
+                      'level': 0
                       },
 
              'MINE': {'name': 'Mine',
@@ -38,14 +41,16 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'min_damage': 10,
                       'max_damage': 10,
                       'price': 7,
-                      'upgrade_cost': 10
+                      'upgrade_cost': 10,
+                      'level': 0
                       },
 
              'HEAL': {'name': 'Heal',
                       'min_damage': 5,
                       'max_damage': 5,
                       'price': 8,
-                      'upgrade_cost': 12                     
+                      'upgrade_cost': 12,
+                      'level': 0                     
                      },
             
              'CANON': {'name': 'Cannon',
@@ -53,14 +58,16 @@ defenders = {'ARCHR': {'name': 'Archer',
                       'min_damage': 3,
                       'max_damage': 5,
                       'price': 7,
-                      'upgrade_cost': 8,                  
+                      'upgrade_cost': 8,
+                      'level': 0                 
                      },
 
              'NUKE': {'name': 'Nuclear',
                       'min_damage': 15,
                       'max_damage': 15,
                       'price': 12,
-                      'upgrade_cost': 15,   
+                      'upgrade_cost': 15,
+                      'level': 0   
                      }
              }
 
@@ -96,6 +103,14 @@ monsters = {'ZOMBI': {'name': 'Zombie',
                       'reward': 4
                     }
             }
+
+levels =  {'ARCHR': 0,
+           'WALL': 0,
+           'MINE': 0,
+           'HEAL': 0,
+           'CANON': 0,
+           'NUKE': 0                                           
+          }
 
 field = [ [None, None, None, None, None, None, None],
           [None, None, None, None, None, None, None],
@@ -198,6 +213,7 @@ def check_combat_choice(choice):
         save_game(field, game_vars)
     elif choice == 5:
         print("Thank you for playing")
+        raise SystemExit()
     else:
         print("Invalid input!")
         show_combat_menu()
@@ -644,14 +660,24 @@ def defender_upgrade(choice):
         defenders[defender_list[choice - 1]]["maxHP"] += 1
         defenders[defender_list[choice - 1]]["min_damage"] += 1
         defenders[defender_list[choice - 1]]["max_damage"] += 1
+        levels["ARCHR"] += 1
 
     # If wall, increase HP by 5
     elif defender_list[choice - 1] == "WALL":
         defenders[defender_list[choice - 1]]["maxHP"] += 5
+        levels["WALL"] += 1
     
+    elif defender_list[choice - 1] == "CANON":
+        defenders[defender_list[choice - 1]]["maxHP"] += 1
+        defenders[defender_list[choice - 1]]["max_damage"] += 2
+        defenders[defender_list[choice - 1]]["min_damage"] += 2
+        levels["CANON"] += 1
+
     else:
         defenders[defender_list[choice - 1]]["max_damage"] += 2
         defenders[defender_list[choice - 1]]["min_damage"] += 2
+
+        levels[defender_list[choice - 1]] += 1
     
 
     # Increase defender costs incrementing by 2
@@ -678,7 +704,43 @@ def monster_upgrade(monsters):
         monsters[i]["min_damage"] += 1
         monsters[i]["max_damage"] += 1
         monsters[i]["reward"] += 1
+
+#--------------------------------------------------------------------
+# update_levels()
+#
+#   Updates the defenders and monsters levels after loading a saved game
+#---------------------------------------------------------------------  
+def update_levels(defender_levels, danger_level):
+    for i in monsters:
+        monsters[i]["maxHP"] += danger_level
+        monsters[i]["min_damage"] += danger_level
+        monsters[i]["max_damage"] += danger_level
+        monsters[i]["reward"] += danger_level
+
+    for i, key in enumerate(levels):
+        levels[key] = defender_levels[i]
+
+    for i in defenders:
+        if i == "ARCHR":
+            defenders[i]["maxHP"] += levels[i]
+            defenders[i]["min_damage"] += levels[i]
+            defenders[i]["max_damage"] += levels[i]
+
+        elif i == "WALL":
+            defenders[i]["maxHP"] += (levels[i] * 5)
         
+        elif i == "CANON":
+            defenders[i]["maxHP"] += levels[i]
+            defenders[i]["min_damage"] += (levels[i] * 2)
+            defenders[i]["max_damage"] += (levels[i] * 2)
+
+        else:
+            defenders[i]["min_damage"] += (levels[i] * 2)
+            defenders[i]["max_damage"] += (levels[i] * 2) 
+
+        defenders[i]["upgrade_cost"] += (levels[i] * 2)    
+
+
 
     
 
@@ -743,18 +805,25 @@ def save_game(field, game_vars):
 
         # Converts game_vars to list of strings
         variables = [str(x) for x in game_vars.values()]
-        
+
+        # Converts defender levels into a list of strings
+        defender_levels = [str(x) for x in levels.values()]
+
         # Saves first line as game variables
         save_file.writelines(",".join(variables))
         
         save_file.write("\n")
 
+        save_file.writelines(",".join(defender_levels))
+
+        save_file.write("\n")
+
         # Loops through every row in field
         for row in field:
             # Saves every element of row as a list of strings
-            field_row = [str(x) for x in row]
+            elements = [str(x) for x in row]
             # Saves list of elements as a single string joined by a "-"
-            save_file.writelines("-".join(field_row))
+            save_file.writelines("-".join(elements))
             save_file.write("\n")
 
         save_file.close()
@@ -774,21 +843,27 @@ def load_game():
         # List of lines
         variables_and_field = save_file.readlines()
 
-        if len(variables_and_field) != 6:
+        if len(variables_and_field) != len(field) + 2:
             print("Failed to load save file...Returning to main menu")
             show_main_menu()
         else:
             # First line is game variables
             game_variables = variables_and_field[0].strip("\n").split(",")
 
+            # Second line is defender levels, using list comprehension to convert back into integer
+            defender_levels = [int(x) for x in variables_and_field[1].strip("\n").split(",")]
+
             # enumerate creates an index value pair, e.g., (0, turn), (1, maxHP)
             for i, j  in enumerate(game_vars):
                 game_vars[j] = int(game_variables[i])
+            
+            # Updates monster and defender levels
+            update_levels(defender_levels, game_vars["danger_level"])
 
             # For every row in field
             for row in range(len(field)):
                 # Temp row is the second line onwards of the txt file split into a list.
-                temp_row = variables_and_field[row + 1].strip("\n").split("-")
+                temp_row = variables_and_field[row + 2].strip("\n").split("-")
 
                 # For every element in each row
                 for column in range((len(field[0]))):
