@@ -418,7 +418,7 @@ def end_turn(field):
     game_vars["threat"] += random.randint(1, game_vars["danger_level"])
     
     # If threat level reaches 10, subtract by 10 and spawn a new monster.
-    if (game_vars["threat"] >= game_vars["max_threat"]):
+    while (game_vars["threat"] >= game_vars["max_threat"]):
             game_vars["threat"] -= game_vars["max_threat"]
             spawn_monster(monster_list=monster_list)
 

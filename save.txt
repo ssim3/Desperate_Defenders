@@ -1,6 +1,0 @@
-1000,20,4,3,6,4,10,3
-None-None-None-None-None-None-None
-['ARCHR', 5, 5]-None-None-None-None-None-None
-['CANON', 8, 8]-None-None-None-['GOLEM', 7, 31]-None-None
-['ARCHR', 5, 5]-None-None-None-None-None-None
-['CANON', 8, 8]-None-None-['ZOMBI', 8, 16]-None-None-None
